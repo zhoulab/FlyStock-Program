@@ -17,9 +17,9 @@ If the search has multiple results (i.e. searching by someone's name with the "R
 
 ## Requirements
 
-1. 'pypiwin32' (Necessary for printing through COM)
-2. 'Python' (Confirmed working with Python 3.xx)
-3. 'Java >= 8' (Necessary for connection to .odb)
+1. `pypiwin32` (Necessary for printing through COM)
+2. `Python` (Confirmed working with Python 3.xx)
+3. `Java >= 8` (Necessary for connection to .odb)
 
 
 
