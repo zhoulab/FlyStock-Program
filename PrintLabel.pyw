@@ -123,12 +123,26 @@ def main():
     textbox.tag_configure("center", justify = "center")
 
     # Custom labels (one time use)
+
+    # Gets time modified (in epoch format)
+    modified = os.path.getmtime(labPath)
+
+    # Convert epoch format to MM/DD/YY Hours:Minutes:Seconds
+    modified = time.strftime('%m/%d/%y %I:%M:%S', time.localtime(modified))
+
+    modifiedLabel = Label(root, text="LabDB.odb updated: " + modified)
+    modifiedLabel.grid(row=0, column=labelColumn, columnspan=2, pady=(5,0))
+    
     previewLabel = Label(root, text="Preview ( 2\"x 3/4\" )")
     previewLabel.grid(row=textboxRow+1,column=labelColumn,columnspan=2,pady=(20,0))
 
     # Custom buttons (one time use)
-    todayButton = Button(root,text="Today", command=lambda: day.Entry.insert(0,time.strftime('%x')))
+    todayButton = Button(root,text="Today", command=lambda: updateToday())
     todayButton.grid(row=dayRow,column=3,padx=(0,20))
+
+    def updateToday():
+        day.Entry.delete(0,'end')
+        day.Entry.insert(0,time.strftime('%x'))
 
     clearButton = Button(root, text = "Clear Entries", command = lambda: clearEntries())
     clearButton.grid(row=textboxRow, column = labelColumn, columnspan=2)
@@ -266,7 +280,6 @@ def main():
 
             #Something has gone wrong with finding using keyword
             except Exception as e:
-                print(e)
                 error = messagebox.showerror("Find Error", "Entry could not be found with %s \"%s\"" % (keyword[0],keyword[1]))
 
     #PRINT
@@ -296,7 +309,6 @@ def main():
             labelCom.EndPrintJob()
 
         except Exception as e:
-            print(e)
             messagebox.showinfo('PyDymoLabel','An error occurred during printing.')
             sys.exit(1)
 
