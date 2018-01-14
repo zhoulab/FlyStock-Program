@@ -12,15 +12,7 @@ public class Query
 {
     public static void main(String[] args) throws ParseException
     {
-        // Arguments necessary to query
-        if(args.length!=0){
-        try
-        {
-            if(args[0].contains(" ")){
-              String[] argument = (args[0]).split(" ");
-              args = argument;
-            }
-
+        try {
             // Get current working directory
             String db_file_name_prefix = (System.getProperty("user.dir")+"\\database\\mydb");
 
@@ -44,23 +36,21 @@ public class Query
 
             //QUERYING
             //Example: args[0] = Stock_ID, args[1] = G001.
-            ResultSet rs = statement.executeQuery("SELECT \"Stock_ID\", \"Genotype\", \"Description\", \"Note\", \"Res_Person\", \"Flybase\", \"Project\" "
-                                                +"FROM \"Fly_Stock\" WHERE ( UPPER ( \"" + args[0] + "\" ) LIKE UPPER ( '%" + args[1] + "%' ) )");
-                                                //+"OR UPPER ( \"Genotype\" ) LIKE UPPER ( '%" + args[0] + "%' ) "
-                                                //+"OR UPPER ( \"Description\" ) LIKE UPPER ( '%" + args[0] + "%' ) "
-                                                //+"OR UPPER ( \"Res_Person\" ) LIKE UPPER ( '%" + args[0] + "%' ) ) "
-                                                //+"OR UPPER ( \"Note\" ) LIKE UPPER ( '%" + args[0] + "%' )");
+            ResultSet rs = statement.executeQuery("SELECT * FROM \"Fly_Stock\"");
 
-            //print the result set seperated by |||
+            //print the result in a comma delimited format
+            System.out.print("\"Stock_ID\",\"Genotype\",\"Description\",\"Note\",\"Res_Person\",\"Flybase\",\"Project\"" + "\n");
             while (rs.next())
             {
-                System.out.println(rs.getString("Stock_ID")
-                + " ||| " + rs.getString("Genotype")
-                + " ||| " + rs.getString("Description")
-                + " ||| " + rs.getString("Note")
-                + " ||| " + rs.getString("Res_Person")
-                + " ||| " + rs.getString("Flybase")
-                + " ||| " + rs.getString("Project"));
+                System.out.print(
+                "\"" + rs.getString("Stock_ID")
+                + "\",\"" + rs.getString("Genotype")
+                + "\",\"" + rs.getString("Description")
+                + "\",\"" + rs.getString("Note")
+                + "\",\"" + rs.getString("Res_Person")
+                + "\",\"" + rs.getString("Flybase")
+                + "\",\"" + rs.getString("Project") + "\"" + "\n"
+                );
             }
 
             // Properly exit and close connections
@@ -69,7 +59,8 @@ public class Query
             rs.close();
 
         // Exception handling
-        } catch (SQLException ex)
+        }
+         catch (SQLException ex)
         {
             Logger.getLogger(Query.class.getName()).log(Level.SEVERE, null, ex);
             ex.printStackTrace();
@@ -79,4 +70,3 @@ public class Query
         }
         }
     }
-}
