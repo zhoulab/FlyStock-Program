@@ -12,12 +12,13 @@ public class Query
 {
     public static void main(String[] args) throws ParseException
     {
+      Connection con = null;
+      Statement statement = null;
+      ResultSet rs = null;
+
         try {
             // Get current working directory
-            String db_file_name_prefix = (System.getProperty("user.dir")+"\\database\\mydb");
-
-            Connection con = null;
-
+            String db_file_name_prefix = (System.getProperty("user.dir")+"\\LabDB\\database\\mydb");
             // Load the HSQL Database Engine JDBC driver
             // hsqldb.jar should be in the class path or made part of the current jar
             Class.forName("org.hsqldb.jdbcDriver");
@@ -32,11 +33,15 @@ public class Query
                   "sa", // username if there is any
                     "");  // password if there is any
 
-            Statement statement = con.createStatement();
+            statement = con.createStatement();
 
             //QUERYING
             //Example: args[0] = Stock_ID, args[1] = G001.
-            ResultSet rs = statement.executeQuery("SELECT * FROM \"Fly_Stock\"");
+            rs = statement.executeQuery("SELECT * FROM \"Fly_Stock\"");
+
+            //Writes
+            /*    INSERT INTO "Fly_Stock" ("Stock_ID", "Genotype", "Description", "Note", "Res_Person", "Flybase", "Project")
+    VALUES ('M500', 'S', 'N', 'note', 'res', 'fly', 'proj')*/
 
             //print the result in a comma delimited format
             System.out.print("\"Stock_ID\",\"Genotype\",\"Description\",\"Note\",\"Res_Person\",\"Flybase\",\"Project\"" + "\n");
@@ -53,11 +58,6 @@ public class Query
                 );
             }
 
-            // Properly exit and close connections
-            statement.close();
-            con.close();
-            rs.close();
-
         // Exception handling
         }
          catch (SQLException ex)
@@ -68,5 +68,11 @@ public class Query
         {
             Logger.getLogger(Query.class.getName()).log(Level.SEVERE, null, ex);
         }
+        // Properly exit and close connections
+        finally {
+          try { rs.close(); } catch (Exception e) { /* ignored */ }
+          try { statement.close(); } catch (Exception e) { /* ignored */ }
+          try { con.close(); } catch (Exception e) { /* ignored */ }
+}
         }
     }

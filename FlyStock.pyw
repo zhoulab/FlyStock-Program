@@ -2,7 +2,7 @@
 # For help ask Alain Garcia (alaingarcia@ufl.edu)
 
 # For GUI functionality
-from tkinter import Tk, ttk, IntVar, StringVar, Label, Checkbutton, Text, Scrollbar, Listbox, messagebox
+from tkinter import Tk, ttk, IntVar, StringVar, Label, Checkbutton, Text, Scrollbar, Listbox, messagebox, filedialog
 from tkinter import END, INSERT, ACTIVE, Toplevel, RIGHT, LEFT, X, Y
 
 import time # Only used to access current day
@@ -13,7 +13,7 @@ import csv # Read the csv that is read from java subprocess
 from win32com.client import Dispatch # For communicating to DYMO printer
 
 # Python file path C:/.../LabelPrinter/
-dir = os.path.abspath(os.path.dirname(__file__))
+dir = os.path.abspath(os.path.dirname(__file__))+"\Resources"
 
 # LabDB path
 #labPath = os.path.join('C:\\Users\\lab\\Dropbox (ZhouLab)\\ZhouLab Team Folder\\General\\Databases','LabDB.odb')
@@ -21,38 +21,48 @@ labPath = os.path.join(dir,'LabDB.odb')
 
 # Delete previous mydb files (used during renameFiles)
 def deletePrevious():
-    #for loop to delete previous mydb files in \database
-    for file in os.listdir(dir+'\database'):
-
+    """#for loop to delete previous mydb files in \database
+    for file in os.listdir(dir+'\LabDB\database'):
         #delete mydb files
         if file.startswith('mydb') and not file.endswith('.tmp'):
-            os.remove(os.path.join(dir+'\database', file))
+            os.remove(os.path.join(dir+'\LabDB\database', file))
 
         #.tmp files are considered directories, so rmdir is required instead of remove
         elif file.endswith('.tmp'):
-            os.rmdir(os.path.join(dir+'\database', file))
+            os.rmdir(os.path.join(dir+'\LabDB\database', file))"""
+    for root, dirs, files in os.walk(dir+"\LabDB", topdown=False):
+        for name in files:
+            os.remove(os.path.join(root, name))
+        for name in dirs:
+            os.rmdir(os.path.join(root, name))
 
 # Function to rename database files
-def renameFiles():
+def renameFiles(readOrWrite):
+    if(readOrWrite == "r"):
+        files = os.listdir(dir+'\LabDB\database')
 
-    files = os.listdir('database')
+        #Then, rename and 'create' new mydb
+        for filename in files:
+            os.rename(os.path.join(dir+'\LabDB\database', filename), os.path.join(dir+'\LabDB\database', "mydb."+filename) )
+    elif(readOrWrite == "w"):
+        files = os.listdir(dir+'\LabDB\database')
 
-    #Then, rename and 'create' new mydb
-    for filename in files:
-        os.rename(os.path.join(dir+'\database', filename), os.path.join(dir+'\database', "mydb."+filename) )
+        #Then, rename and 'create' new mydb
+        for filename in files:
+            os.rename(os.path.join(dir+'\LabDB\database', filename), os.path.join(dir+'\LabDB\database', filename.replace("mydb.","")) )
 
 #Uses zipfile library to unzip and extract HSQLDB database from .odb
 def openFile():
     unzip = zipfile.ZipFile(labPath, 'r')
-    for file in unzip.namelist():
-        if file.startswith('database/'):
-            unzip.extract(file,dir)
+    unzip.extractall(dir+'\LabDB')
     unzip.close()
 
+#Uses java to connect to database and read it. Stores in csv file.
 def readDatabase():
 
     #Runs "java C:\...\Query CATEGORY KEYWORD" and outputs it into "out"
-    proc = subprocess.Popen(['java','-Dmydir='+dir,'Query'],stdout=subprocess.PIPE, shell=True)
+    os.chdir(dir)
+    proc = subprocess.Popen(['java','-cp',dir+";"+dir+"\\hsqldb.jar",'Query'],stdout=subprocess.PIPE, shell=True)
 
     #Receive output in 'out'
     (out, err) = proc.communicate()
@@ -60,14 +70,32 @@ def readDatabase():
     out = str(out,'latin-1')
 
     #Writes it to a file
-    file = open('LabDB.csv','w')
+    file = open(dir+'\LabDB.csv','w')
     file.write(out)
+    file.close()
+
+def writeFile():
+    if os.path.isfile(dir+"\Lab.odb"):
+        os.remove(dir+"\Lab.odb")
+    #Create zip file
+    zipped = zipfile.ZipFile(dir+"\LabDB.zip", 'w', zipfile.ZIP_DEFLATED)
+
+    #Populate zip file
+    for root, dirs, files in os.walk(dir+"\LabDB"):
+        os.chdir(dir+"\LabDB")
+        for file in files:
+            zipped.write(os.path.join(root.replace("LabDB/",""), file))
+        os.chdir(dir)
+    zipped.close()
+    os.rename(dir+"\LabDB.zip",dir+"\Lab.odb")
 
 def main():
     deletePrevious()
     openFile()
-    renameFiles()
+    renameFiles("r")
     readDatabase()
+    #renameFiles("w")
+    #writeFile()
 
     # Gets time modified (in epoch format)
     modified = os.path.getmtime(labPath)
@@ -125,7 +153,7 @@ def main():
                 self.Check = Checkbutton(tab1, variable = self.checkValue, command = lambda: updateTextbox('<KeyRelease>'))
                 self.Check.grid(row=rowNumber, column=buttonColumn, padx=(10,0),stick='e')
 
-                self.Label = Label(tab1, text=self.labelName)
+                self.Label = ttk.Label(tab1, text=self.labelName)
                 self.Label.grid(row=rowNumber, column=labelColumn, padx=(0,10), pady=(10),stick='w')
 
                 self.String = StringVar()
@@ -237,7 +265,7 @@ def main():
                     resultNumber = 0
                     queryResult = []
 
-                    with open("LabDB.csv", "r") as csvRead:
+                    with open(dir+"\LabDB.csv", "r") as csvRead:
                         lab = csv.reader(csvRead)
                         for row in lab:
                             currentColumn = 0
@@ -365,7 +393,7 @@ def main():
             listG = []
             listM = []
 
-            with open("LabDB.csv", "r") as csvRead:
+            with open(dir+"\LabDB.csv", "r") as csvRead:
                 lab = csv.reader(csvRead)
                 first = True
                 for row in lab:
@@ -385,12 +413,18 @@ def main():
 
         modifiedLabel = Label(tab2, text="LabDB.odb updated: " + modified)
         modifiedLabel.grid(row=0,columnspan=2)
-        bloomLabel = Label(tab2, text="Please enter a Bloomington Drosophila Stock Center .csv")
-        bloomLabel.grid(row=1,columnspan=2)
 
-        fileEntry = ttk.Entry(tab2,width=50)
-        fileEntry.grid(row=2,column=0)
-        fileBrowse = ttk.Button(tab2, text="Browse")
+        bloomLabel = Label(tab2, text="Please enter a Bloomington Drosophila Stock Center .csv")
+        bloomLabel.grid(row=1, columnspan=2)
+
+        fileEntry = ttk.Entry(tab2,width=70)
+        fileEntry.grid(row=2,column=0,padx=(20,10))
+
+        def browser():
+            browse = filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("csv files","*.csv"),("all files","*.*")))
+            fileEntry.insert(0, browse)
+
+        fileBrowse = ttk.Button(tab2, text="Browse", command = lambda: browser())
         fileBrowse.grid(row=2,column=1)
 
     Finder()
