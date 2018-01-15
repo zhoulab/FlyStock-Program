@@ -10,6 +10,7 @@ import zipfile # To unzip .odb and extract data from database
 import os # Delete files
 import subprocess # Run the java query subprocess
 import csv # Read the csv that is read from java subprocess
+import shutil
 from win32com.client import Dispatch # For communicating to DYMO printer
 
 # Python file path C:/.../LabelPrinter/
@@ -36,6 +37,14 @@ def deletePrevious():
         for name in dirs:
             os.rmdir(os.path.join(root, name))
 
+    for root, dirs, files in os.walk(dir+"\LabDBWrite", topdown=False):
+        for name in files:
+            os.remove(os.path.join(root, name))
+        for name in dirs:
+            os.rmdir(os.path.join(root, name))
+
+    os.rmdir(dir+"\LabDBWrite")
+
 # Function to rename database files
 def renameFiles(readOrWrite):
     if(readOrWrite == "r"):
@@ -43,13 +52,13 @@ def renameFiles(readOrWrite):
 
         #Then, rename and 'create' new mydb
         for filename in files:
-            os.rename(os.path.join(dir+'\LabDB\database', filename), os.path.join(dir+'\LabDB\database', "mydb."+filename) )
+            os.rename(os.path.join(dir+'\LabDB\database', filename), os.path.join(dir+'\LabDB\database', "mydb."+filename))
     elif(readOrWrite == "w"):
-        files = os.listdir(dir+'\LabDB\database')
+        files = os.listdir(dir+'\LabDBWrite\database')
 
         #Then, rename and 'create' new mydb
         for filename in files:
-            os.rename(os.path.join(dir+'\LabDB\database', filename), os.path.join(dir+'\LabDB\database', filename.replace("mydb.","")) )
+            os.rename(os.path.join(dir+'\LabDBWrite\database', filename), os.path.join(dir+'\LabDBWrite\database', filename.replace("mydb.","")))
 
 #Uses zipfile library to unzip and extract HSQLDB database from .odb
 def openFile():
@@ -75,17 +84,32 @@ def readDatabase():
     file.close()
 
 def writeFile():
+
     if os.path.isfile(dir+"\Lab.odb"):
         os.remove(dir+"\Lab.odb")
+
+    #Populate LabDBWrite
+    shutil.copytree(dir+"\LabDB",dir+"\LabDBWrite")
+    os.remove(dir+"\LabDBWrite\database\mydb.lck")
+    os.remove(dir+"\LabDBWrite\database\mydb.properties")
+    os.remove(dir+"\LabDBWrite\database\mydb.script")
+
+    #Remove mydb. prefix for a write ("w")
+    renameFiles("w")
+    shutil.copy(dir+"\Functional\script",dir+"\LabDBWrite\database")
+    shutil.copy(dir+"\Functional\properties",dir+"\LabDBWrite\database")
+
     #Create zip file
     zipped = zipfile.ZipFile(dir+"\LabDB.zip", 'w', zipfile.ZIP_DEFLATED)
 
     #Populate zip file
-    for root, dirs, files in os.walk(dir+"\LabDB"):
-        os.chdir(dir+"\LabDB")
+    for root, dirs, files in os.walk(dir+"\LabDBWrite"):
         for file in files:
-            zipped.write(os.path.join(root.replace("LabDB/",""), file))
-        os.chdir(dir)
+            os.chdir(dir+"\LabDBWrite")
+            filePath = os.path.join(root, file)
+            filePath = filePath.replace(dir+"\LabDBWrite\\","")
+            zipped.write(filePath)
+    os.chdir(dir)
     zipped.close()
     os.rename(dir+"\LabDB.zip",dir+"\Lab.odb")
 
@@ -94,8 +118,7 @@ def main():
     openFile()
     renameFiles("r")
     readDatabase()
-    #renameFiles("w")
-    #writeFile()
+    writeFile()
 
     # Gets time modified (in epoch format)
     modified = os.path.getmtime(labPath)
