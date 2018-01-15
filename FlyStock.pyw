@@ -42,8 +42,10 @@ def deletePrevious():
             os.remove(os.path.join(root, name))
         for name in dirs:
             os.rmdir(os.path.join(root, name))
-
-    os.rmdir(dir+"\LabDBWrite")
+    if os.path.isdir(dir+"\LabDBWrite"):
+        os.rmdir(dir+"\LabDBWrite")
+    else:
+        pass
 
 # Function to rename database files
 def renameFiles(readOrWrite):
@@ -63,6 +65,10 @@ def renameFiles(readOrWrite):
 #Uses zipfile library to unzip and extract HSQLDB database from .odb
 def openFile():
     unzip = zipfile.ZipFile(labPath, 'r')
+    if os.path.isdir(dir+"\LabDB"):
+        pass
+    else:
+        os.makedirs(dir+"\LabDB")
     unzip.extractall(dir+'\LabDB')
     unzip.close()
 
