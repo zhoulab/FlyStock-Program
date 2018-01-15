@@ -36,6 +36,11 @@ def deletePrevious():
             os.remove(os.path.join(root, name))
         for name in dirs:
             os.rmdir(os.path.join(root, name))
+    if os.path.isdir(dir+"\LabDB"):
+        os.rmdir(dir+"\LabDB")
+    else:
+        pass
+
 
     for root, dirs, files in os.walk(dir+"\LabDBWrite", topdown=False):
         for name in files:
@@ -124,7 +129,6 @@ def main():
     openFile()
     renameFiles("r")
     readDatabase()
-    writeFile()
 
     # Gets time modified (in epoch format)
     modified = os.path.getmtime(labPath)
@@ -409,7 +413,7 @@ def main():
 
             messagebox.showinfo('PyDymoLabel','Label printed!')
 
-    def AddStock():
+    def Adder():
         availableG = []
         availableM = []
 
@@ -438,7 +442,19 @@ def main():
             availableG = (findMissing(listG))
             availableM = (findMissing(listM))
 
-        findAvailable()
+        def addStock():
+            os.chdir(dir)
+            proc = subprocess.Popen(['java','-cp',dir+";"+dir+"\\hsqldb.jar",'Add'], stdout=subprocess.PIPE, shell=True)
+
+            #Receive output in 'out'. For some reason necessary to keep code working.
+            (out, err) = proc.communicate()
+
+            #Removes lock
+            os.remove(dir+"\LabDB\database\mydb.lck")
+
+            #Updates database search with new entries
+            readDatabase()
+
 
         modifiedLabel = Label(tab2, text="LabDB.odb updated: " + modified)
         modifiedLabel.grid(row=0,columnspan=2)
@@ -456,8 +472,14 @@ def main():
         fileBrowse = ttk.Button(tab2, text="Browse", command = lambda: browser())
         fileBrowse.grid(row=2,column=1)
 
+        addButton = ttk.Button(tab2, text="Add stock", command = lambda: addStock())
+        addButton.grid(row=3,columnspan=2)
+
+        writeButton = ttk.Button(tab2, text="Write to Dropbox", command = lambda: writeFile())
+        writeButton.grid(row=4,columnspan=2)
+
     Finder()
-    AddStock()
+    Adder()
     root.mainloop()
 
 
