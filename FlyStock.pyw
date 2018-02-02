@@ -3,14 +3,16 @@
 
 # For GUI functionality
 from tkinter import Tk, ttk, IntVar, StringVar, Label, Checkbutton, Text, Scrollbar, Listbox, messagebox, filedialog
-from tkinter import END, INSERT, ACTIVE, Toplevel, RIGHT, LEFT, X, Y
+from tkinter import END, INSERT, ACTIVE, Toplevel, RIGHT, LEFT, HORIZONTAL, X, Y, TOP, BOTTOM
 
 import time # Only used to access current day
 import zipfile # To unzip .odb and extract data from database
 import os # Delete files
 import subprocess # Run the java query subprocess
 import csv # Read the csv that is read from java subprocess
+import pandas as pd
 import shutil
+import math
 from win32com.client import Dispatch # For communicating to DYMO printer
 
 # Python file path C:/.../LabelPrinter/
@@ -333,18 +335,21 @@ def main():
                         selectLabel = Label(selectWindow, text="Multiple stocks meet criteria. Please select one and then press \"Select\".")
                         selectLabel.pack()
 
-                        selectScrollbar = Scrollbar(selectWindow)
-                        selectScrollbar.pack(side=RIGHT, fill=Y)
+                        yScrollbar = Scrollbar(selectWindow)
+                        yScrollbar.pack(side=RIGHT, fill=Y)
+                        xScrollbar = Scrollbar(selectWindow, orient=HORIZONTAL)
+                        xScrollbar.pack(side=BOTTOM, fill=X)
 
                         #Different heights
                         if resultNumber<50:
-                            selectListbox = Listbox(selectWindow, height=resultNumber, width=100, yscrollcommand=selectScrollbar.set)
+                            selectListbox = Listbox(selectWindow, height=resultNumber, width=100, yscrollcommand=yScrollbar.set, xscrollcommand=xScrollbar.set)
                         else:
-                            selectListbox = Listbox(selectWindow, height=50, width=100, yscrollcommand=selectScrollbar.set)
+                            selectListbox = Listbox(selectWindow, height=50, width=100, yscrollcommand=yScrollbar.set, xscrollcommand=xScrollbar.set)
 
                         selectListbox.pack()
 
-                        selectScrollbar.config(command=selectListbox.yview)
+                        yScrollbar.config(command=selectListbox.yview)
+                        xScrollbar.config(command=selectListbox.xview)
 
                         #declare listbox that shows all selections
                         #listbox = Listbox(selectionWindow,height=resultNumber,width=100)
@@ -414,36 +419,96 @@ def main():
             messagebox.showinfo('PyDymoLabel','Label printed!')
 
     def Adder():
-        availableG = []
-        availableM = []
 
         #Finds first available stock entries
         def findMissing(L):
             start, end = L[0], L[-1]
             return sorted(set(range(start, end + 1)).difference(L))
 
-        def findAvailable():
-            listG = []
-            listM = []
+        def findAvailable(Letter):
+            stockList = []
 
             with open(dir+"\LabDB.csv", "r") as csvRead:
                 lab = csv.reader(csvRead)
                 first = True
                 for row in lab:
                     stockID = row[0]
-                    if stockID.find("G") and first == False:
+                    if (first == False) and stockID.find(Letter) != -1:
                         #Cuts off "G" and turns into integer
-                        listG.append(int(stockID[1:]))
-                    elif stockID.find("M") and first == False:
-                        listM.append(int(stockID[1:]))
+                        stockList.append(int(stockID[1:]))
                     else:
                         first = False
+            return findMissing(stockList)
 
-            availableG = (findMissing(listG))
-            availableM = (findMissing(listM))
+        def showAvailable():
+            openG = findAvailable("G")
+            openM = findAvailable("M")
 
+            selectWindow = Toplevel(root)
+            selectWindow.iconbitmap(dir+'\print.ico') #Window icon
+
+            selectLabel = Label(selectWindow, text="Available \"G\" and \"M\" stocks displayed")
+            selectLabel.grid(row=0,columnspan = 10)
+
+            class stockDisplay:
+                def __init__(self, frame, checkValue, labelName, rowNumber, buttonColumn):
+
+                    self.checkValue = IntVar(value=checkValue)
+                    self.labelName = labelName
+                    self.frame = frame
+
+                    self.Check = Checkbutton(self.frame, variable = self.checkValue, command=lambda:updateSelections())
+                    self.Check.grid(row=rowNumber, column=buttonColumn, padx=(10,0),stick='e')
+
+                    self.Label = ttk.Label(self.frame, text=self.labelName, width=8)
+                    self.Label.grid(row=rowNumber, column=buttonColumn+1, padx=(0,10), pady=(10),stick='w')
+
+            rows = math.ceil(max([len(openG),len(openM)])/7)
+
+            gLabel = ttk.LabelFrame(selectWindow, text='G Stocks')
+            gLabel.grid(row=1, stick='w')
+
+            currentRow = 0
+            currentColumn = 0
+
+            available = []
+
+            for entry in openG:
+                if currentRow == rows:
+                    currentRow = 0
+                    currentColumn = currentColumn + 1
+                available.append(stockDisplay(gLabel, 0, entry, currentRow, currentColumn))
+                currentRow = currentRow + 1
+
+            mLabel = ttk.LabelFrame(selectWindow, text='M Stocks')
+            mLabel.grid(row=2, stick='w')
+
+            currentRow = 0
+            currentColumn = 0
+
+            for entry in openM:
+                if currentRow == rows:
+                    currentRow = 0
+                    currentColumn = currentColumn + 1
+                available.append(stockDisplay(mLabel, 0, entry, currentRow, currentColumn))
+                currentRow = currentRow + 1
+
+            def updateSelections():
+                """selectFrame = ttk.LabelFrame(selectWindow, text='Selections')
+                selectFrame.grid(row=3, stick='w')
+                for entry in available:
+                    if entry.checkValue.get() == 1:
+                        label"""
+        browserFile = ''
         def addStock():
-            os.chdir(dir)
+            global browserFile
+            addWindow = Toplevel(root)
+            addWindow.iconbitmap(dir+'\print.ico') #Window icon
+
+
+
+
+            """os.chdir(dir)
             proc = subprocess.Popen(['java','-cp',dir+";"+dir+"\\hsqldb.jar",'Add'], stdout=subprocess.PIPE, shell=True)
 
             #Receive output in 'out'. For some reason necessary to keep code working.
@@ -454,29 +519,45 @@ def main():
 
             #Updates database search with new entries
             readDatabase()
+            """
 
 
         modifiedLabel = Label(tab2, text="LabDB.odb updated: " + modified)
-        modifiedLabel.grid(row=0,columnspan=2)
+        modifiedLabel.grid(row=0,columnspan=10)
 
-        bloomLabel = Label(tab2, text="Please enter a Bloomington Drosophila Stock Center .csv")
-        bloomLabel.grid(row=1, columnspan=2)
+        bloomLabel = ttk.LabelFrame(tab2, text="Please enter a Bloomington Drosophila Stock Center .csv")
+        bloomLabel.grid(row=1,columnspan=10, padx=(20,0))
 
-        fileEntry = ttk.Entry(tab2,width=70)
-        fileEntry.grid(row=2,column=0,padx=(20,10))
+        fileEntry = ttk.Entry(bloomLabel,width=70)
+        fileEntry.grid(row=0,column=0,stick='w')
 
         def browser():
-            browse = filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("csv files","*.csv"),("all files","*.*")))
-            fileEntry.insert(0, browse)
+            global browserFile
+            browserFile = filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("csv files","*.csv"),("all files","*.*")))
+            fileEntry.delete(0, END)
+            fileEntry.insert(0, browserFile)
+            if browserFile:
+                bloomington = pd.read_csv(browserFile)
+                if len(bloomington.columns) == 13:
+                    successLabel = Label(bloomLabel, text='File read sucessful.')
+                    successLabel.grid(row=1,columnspan=2)
+                else:
+                    failLabel = Label(bloomLabel, text='File read unsucessful. Is this a Bloomington .csv?')
+                    failLabel.grid(row=1,columnspan=2)
 
-        fileBrowse = ttk.Button(tab2, text="Browse", command = lambda: browser())
-        fileBrowse.grid(row=2,column=1)
+
+
+        fileBrowse = ttk.Button(bloomLabel, text="Browse", command = lambda: browser())
+        fileBrowse.grid(row=0,column=1,stick='e')
+
+        showButton = ttk.Button(tab2, text="Show available stocks", command = lambda: showAvailable())
+        showButton.grid(row=3,columnspan=10)
 
         addButton = ttk.Button(tab2, text="Add stock", command = lambda: addStock())
-        addButton.grid(row=3,columnspan=2)
+        addButton.grid(row=4,columnspan=10)
 
         writeButton = ttk.Button(tab2, text="Write to Dropbox", command = lambda: writeFile())
-        writeButton.grid(row=4,columnspan=2)
+        writeButton.grid(row=5,columnspan=10)
 
     Finder()
     Adder()
