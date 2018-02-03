@@ -457,7 +457,8 @@ def main():
                     self.labelName = labelName
                     self.frame = frame
 
-                    self.Check = Checkbutton(self.frame, variable = self.checkValue, command=lambda:updateSelections())
+                    #, command=lambda:updateSelections()
+                    self.Check = Checkbutton(self.frame, variable = self.checkValue)
                     self.Check.grid(row=rowNumber, column=buttonColumn, padx=(10,0),stick='e')
 
                     self.Label = ttk.Label(self.frame, text=self.labelName, width=8)
@@ -502,8 +503,52 @@ def main():
         browserFile = ''
         def addStock():
             global browserFile
-            addWindow = Toplevel(root)
-            addWindow.iconbitmap(dir+'\print.ico') #Window icon
+
+            #Check before adding
+            if browserFile:
+                bloomington = pd.read_csv(browserFile, names = ['bun','stock','genotype','chrs','chr','insertion','blank','date','donor','notes','owner','po','rrid'])
+                if len(bloomington.columns) == 13:
+                    addWindow = Toplevel(root)
+                    addWindow.iconbitmap(dir+'\print.ico') #Window icon
+
+                    bloomingtonStocks = ttk.LabelFrame(addWindow, text='Stocks found')
+                    bloomingtonStocks.grid(row=0,column=0)
+
+                    bloomStocks = []
+                    def updateSelected():
+                        for stock in bloomStocks:
+                            if stock.checkValue.get() == 1:
+                                print(stock.stock)
+
+                    class bloomStockEntry:
+                        def __init__(self, checkValue, stock, chrs, notes, row):
+                            self.stock = stock
+                            self.chrs = chrs
+                            self.notes = notes
+                            self.row = row
+                            self.checkValue = IntVar(value=checkValue)
+
+                            self.LabelStocks = ttk.Label(bloomingtonStocks, text=str(self.stock))
+                            self.LabelStocks.grid(row=self.row, column=2, padx=(10,0), stick='w')
+
+                            self.LabelChrs = ttk.Label(bloomingtonStocks, text=str(self.chrs))
+                            self.LabelChrs.grid(row=self.row, column=3, stick='w')
+
+                            if str(self.notes) != 'nan':
+                                self.LabelNotes = ttk.Label(bloomingtonStocks, text=str(self.notes))
+                                self.LabelNotes.grid(row=self.row, column=4, stick='w')
+
+                            self.Check = Checkbutton(bloomingtonStocks, variable = self.checkValue, command = lambda: updateSelected())
+                            self.Check.grid(row=self.row, column=0, padx=(10,0),stick='e')
+
+                            self.String = StringVar()
+                            self.Entry = ttk.Entry(bloomingtonStocks, textvariable = self.String, width = 5)
+                            self.Entry.grid(row=self.row, column=1, padx=(0,10))
+
+                    for index, row in bloomington.iterrows():
+                        if index != 1 and not math.isnan(row['stock']) :
+                            bloomStocks.append(bloomStockEntry(0,int(row['stock']),row['chrs'],row['notes'],index))
+
 
 
 
@@ -536,13 +581,15 @@ def main():
             browserFile = filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("csv files","*.csv"),("all files","*.*")))
             fileEntry.delete(0, END)
             fileEntry.insert(0, browserFile)
+
+            #Check if the file chosen is valid
             if browserFile:
                 bloomington = pd.read_csv(browserFile)
                 if len(bloomington.columns) == 13:
-                    successLabel = Label(bloomLabel, text='File read sucessful.')
+                    successLabel = Label(bloomLabel, text='File read successful.')
                     successLabel.grid(row=1,columnspan=2)
                 else:
-                    failLabel = Label(bloomLabel, text='File read unsucessful. Is this a Bloomington .csv?')
+                    failLabel = Label(bloomLabel, text='File read unsuccessful. Is this a Bloomington .csv?')
                     failLabel.grid(row=1,columnspan=2)
 
 
