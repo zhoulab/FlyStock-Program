@@ -6,9 +6,9 @@ Tkinter GUI interface implemented for easier interactions.
 ## Requirements
 
 1. `Python` (Confirmed working with Python 3.xx)
-2. `pypiwin32` (Python module necessary for printing labels through COM)
-3. `pandas` (Python module necessary for efficient manipulation of data)
-4. `jaydebeapi` (Python module necessary for connection to HSQLDB)
+2. `pypiwin32` (Printing labels through COM)
+3. `pandas` (Manipulation of data)
+4. `jaydebeapi` (Connection to HSQLDB)
 
 ## Finder
 A simple Tkinter GUI program made to search through the Lab Stock Database and print them directly. 
